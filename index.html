@@ -70,6 +70,7 @@ label{font-size:.875rem;font-weight:500;color:var(--text-2);display:block;margin
 .nav-meeting-strip{background:var(--gold);color:#3a2500;font-size:.78rem;font-weight:600;letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:18px;padding:7px max(20px,env(safe-area-inset-left,0px));flex-wrap:wrap;}
 .nav-meeting-strip span{opacity:.85;}
 .nav-meeting-strip a{color:#3a2500;text-decoration:underline;text-underline-offset:2px;font-weight:700;white-space:nowrap;}
+@media(max-width:640px){.nav-meeting-strip{gap:6px;padding:5px max(14px,env(safe-area-inset-left,0px));font-size:.72rem;}.nav-meeting-strip .strip-dot{display:none;}.nav-meeting-strip .strip-addr{display:none;}}
 .nav-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:.9375rem;color:var(--text);margin-right:auto;flex-shrink:0;text-decoration:none;}
 .nav-brand:hover{text-decoration:none;}
 .nav-club-sep{color:var(--border);margin:0 6px;font-weight:300;}
@@ -331,9 +332,9 @@ label{font-size:.875rem;font-weight:500;color:var(--text-2);display:block;margin
 <div id="nav">
   <div class="nav-meeting-strip" id="nav-strip">
     <span>Meetings every <strong>Monday at 5:30 PM</strong></span>
-    <span>·</span>
-    <span>Bentonville Brewing — 901 SW 14th St</span>
-    <span>·</span>
+    <span class="strip-dot">·</span>
+    <span class="strip-addr">Bentonville Brewing — 901 SW 14th St</span>
+    <span class="strip-dot">·</span>
     <a href="#meetings">Join us →</a>
   </div>
   <nav class="nav-inner" aria-label="Main navigation">
