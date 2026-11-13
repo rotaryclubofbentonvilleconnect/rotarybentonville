@@ -384,7 +384,6 @@ label{font-size:.875rem;font-weight:500;color:var(--text-2);display:block;margin
     </div>
   </div>
 </footer>
-<script type="text/javascript" src="https://www.juicer.io/embed/my-feed-602624e4-651c-4842-aa9e-44991fe08efd/embed-code.js" async defer></script>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -491,6 +490,11 @@ const STATIC_PROJECTS = [
   { title:'PolioPlus',                  description:'We raise funds for PolioPlus, Rotary\'s campaign to end polio worldwide. Every dollar our members give is tripled by the Bill & Melinda Gates Foundation.',                            partner:'The Rotary Foundation',             pillar:'disease'  },
   { title:'Rotary Youth Leadership Awards', description:'We sponsor young people ages 14–30 to attend RYLA — district leadership programs that challenge and inspire the next generation of community leaders.',                           partner:'Rotary District 6110',              pillar:'edu'      },
 ];
+
+function allProjects() {
+  try { return [...STATIC_PROJECTS, ...JSON.parse(localStorage.getItem('extraProjects') || '[]')]; }
+  catch(e) { return [...STATIC_PROJECTS]; }
+}
 
 const INTERESTS = ['Community Service','Vocational Service','Youth Exchange','Rotary Youth Leadership Awards','International Projects','Fundraising','Social Events','Grant Writing'];
 
@@ -673,7 +677,7 @@ function showMsg(el, type, text) {
 //  RENDER: HOME
 // ═══════════════════════════════════════════════════════════════
 function renderHome() {
-  const totalProjects = STATIC_PROJECTS.length;
+  const totalProjects = allProjects().length;
   document.getElementById('site-footer').style.display = '';
 
   return `
@@ -714,7 +718,7 @@ function renderHome() {
           </div>
         </div>
         <p class="section-sub">From local drives to global exchanges — here's what our members show up for, year after year.</p>
-        ${renderProjAccordion(STATIC_PROJECTS)}
+        ${renderProjAccordion(allProjects())}
       </section>
 
       <section class="section">
@@ -1082,7 +1086,7 @@ function renderFocusDetail(key) {
   if (!pil || !fc) return renderHome();
   document.getElementById('site-footer').style.display = '';
 
-  const localProjs = STATIC_PROJECTS.filter(p => p.pillar === key);
+  const localProjs = allProjects().filter(p => p.pillar === key);
 
   return `<div class="page-wrap">
     <div style="height:220px;position:relative;overflow:hidden;border-radius:0 0 16px 16px;margin-bottom:32px;background:linear-gradient(135deg,${pil.color} 0%,${pil.color}cc 100%)">
@@ -1220,7 +1224,8 @@ function showPinOverlay(onSuccess) {
   const overlay = document.createElement('div');
   overlay.className = 'pin-overlay';
   overlay.innerHTML = `
-    <div class="pin-box">
+    <div class="pin-box" style="position:relative">
+      <button id="pin-close" style="position:absolute;top:12px;right:14px;background:none;border:none;cursor:pointer;font-size:1.25rem;color:var(--text-3);line-height:1;padding:4px 6px" aria-label="Close">&#x2715;</button>
       <h2>Officer Dashboard</h2>
       <p>Enter the club PIN to continue.</p>
       <input class="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off" id="pin-field">
@@ -1246,10 +1251,37 @@ function showPinOverlay(onSuccess) {
   };
   submit.addEventListener('click', attempt);
   field.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
+  overlay.querySelector('#pin-close').addEventListener('click', () => { overlay.remove(); navigate('home'); });
 }
 
 function getOfficers() {
   return { president: OFFICERS.find(o => o.isPresident), others: OFFICERS.filter(o => !o.isPresident) };
+}
+
+function addExtraProject() {
+  const title = document.getElementById('np-title').value.trim();
+  const partner = document.getElementById('np-partner').value.trim();
+  const desc = document.getElementById('np-desc').value.trim();
+  const pillar = document.getElementById('np-pillar').value;
+  const err = document.getElementById('np-error');
+  if (!title) { err.textContent = 'Project name is required.'; return; }
+  if (!pillar) { err.textContent = 'Please choose a focus area.'; return; }
+  err.textContent = '';
+  try {
+    const extra = JSON.parse(localStorage.getItem('extraProjects') || '[]');
+    extra.push({ title, partner, description: desc, pillar });
+    localStorage.setItem('extraProjects', JSON.stringify(extra));
+  } catch(e) {}
+  loadDashTab('projects');
+}
+
+function deleteExtraProject(idx) {
+  try {
+    const extra = JSON.parse(localStorage.getItem('extraProjects') || '[]');
+    extra.splice(idx, 1);
+    localStorage.setItem('extraProjects', JSON.stringify(extra));
+  } catch(e) {}
+  loadDashTab('projects');
 }
 
 function renderDashboard(page) {
@@ -1275,6 +1307,7 @@ function renderDashboard(page) {
             <button class="dash-tab active" data-dtab="submissions">Submissions</button>
             <button class="dash-tab" data-dtab="analytics">Analytics</button>
             <button class="dash-tab" data-dtab="officers">Board Members</button>
+            <button class="dash-tab" data-dtab="projects">Service Projects</button>
           </div>
           <div id="dash-content"></div>
         </div>
@@ -1348,6 +1381,45 @@ function loadDashTab(tab) {
     } else {
       content.innerHTML = `<div style="margin-top:4px">${renderOfficersHTML()}</div>`;
     }
+  } else if (tab === 'projects') {
+    let extra = [];
+    try { extra = JSON.parse(localStorage.getItem('extraProjects') || '[]'); } catch(e) {}
+    const all = [...STATIC_PROJECTS, ...extra];
+    const byPillar = {};
+    PILLARS.forEach(p => { byPillar[p.key] = { label: p.label, color: p.color, icon: p.icon, items: [] }; });
+    all.forEach((p, i) => { if (byPillar[p.pillar]) byPillar[p.pillar].items.push({...p, globalIdx: i, isExtra: i >= STATIC_PROJECTS.length}); });
+    const listRows = PILLARS.flatMap(pil => byPillar[pil.key].items.length ? byPillar[pil.key].items.map(p => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${pil.color};border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <span style="font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:${pil.color}">${esc(pil.icon)} ${esc(pil.short||pil.label)}</span>
+            ${p.isExtra ? '<span style="font-size:.65rem;background:var(--blue-lt);color:var(--blue);border-radius:4px;padding:1px 5px;font-weight:600">local</span>' : ''}
+          </div>
+          <div style="font-size:.875rem;font-weight:700">${esc(p.title)}</div>
+          ${p.partner ? `<div style="font-size:.75rem;color:var(--blue);font-weight:600;margin-top:2px">${esc(p.partner)}</div>` : ''}
+        </div>
+        ${p.isExtra ? `<button onclick="deleteExtraProject(${p.globalIdx - STATIC_PROJECTS.length})" style="flex-shrink:0;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.75rem;color:var(--text-3)">Remove</button>` : ''}
+      </div>`) : []).join('');
+    content.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div>
+          <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px">All Projects (${all.length})</div>
+          <div style="display:flex;flex-direction:column;gap:6px">${listRows || '<p style="font-size:.875rem;color:var(--text-3)">No projects yet.</p>'}</div>
+        </div>
+        <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:20px">
+          <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:14px">Add a Service Project</div>
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <div><label style="font-size:.8rem;font-weight:600;color:var(--text-2);display:block;margin-bottom:4px">Project Name <span style="color:var(--error,#c0392b)">*</span></label><input id="np-title" type="text" placeholder="e.g. Blazer Drive"></div>
+            <div><label style="font-size:.8rem;font-weight:600;color:var(--text-2);display:block;margin-bottom:4px">Partner Organization</label><input id="np-partner" type="text" placeholder="e.g. Dress for Success"></div>
+            <div><label style="font-size:.8rem;font-weight:600;color:var(--text-2);display:block;margin-bottom:4px">Short Description</label><textarea id="np-desc" rows="2" placeholder="One or two sentences about the project" style="min-height:60px"></textarea></div>
+            <div><label style="font-size:.8rem;font-weight:600;color:var(--text-2);display:block;margin-bottom:4px">Focus Area <span style="color:var(--error,#c0392b)">*</span></label>
+              <select id="np-pillar"><option value="">Choose a focus area...</option>${PILLARS.map(p => `<option value="${esc(p.key)}">${esc(p.icon)} ${esc(p.label)}</option>`).join('')}</select></div>
+            <div id="np-error" style="color:var(--error,#c0392b);font-size:.8rem;min-height:.9em"></div>
+            <button onclick="addExtraProject()" class="btn btn-blue" style="align-self:flex-start">Add Project</button>
+          </div>
+          <p style="font-size:.75rem;color:var(--text-3);margin:14px 0 0;border-top:1px solid var(--border);padding-top:12px">Projects added here are saved in this browser and appear in Areas of Focus right away. To publish them permanently for all visitors, also add them to the <code>STATIC_PROJECTS</code> array in the HTML config.</p>
+        </div>
+      </div>`;
   }
 }
 
@@ -1386,7 +1458,15 @@ function route() {
 
   if (hash === 'home') {
     page.innerHTML = renderHome();
-    setTimeout(() => { try { if (window.Juicer) Juicer.initialize(); } catch(e){} }, 100);
+    if (!window._juicerScriptLoaded) {
+      window._juicerScriptLoaded = true;
+      const _js = document.createElement('script');
+      _js.src = 'https://www.juicer.io/embed/my-feed-602624e4-651c-4842-aa9e-44991fe08efd/embed-code.js';
+      _js.async = true;
+      document.body.appendChild(_js);
+    } else {
+      setTimeout(() => { try { if (window.Juicer) Juicer.initialize(); } catch(e){} }, 100);
+    }
   } else if (hash === 'meetings') {
     page.innerHTML = renderMeetings();
   } else if (hash === 'log-hours') {
