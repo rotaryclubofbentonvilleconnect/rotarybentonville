@@ -1248,6 +1248,10 @@ function showPinOverlay(onSuccess) {
   field.addEventListener('keydown', e => { if (e.key === 'Enter') attempt(); });
 }
 
+function getOfficers() {
+  return { president: OFFICERS.find(o => o.isPresident), others: OFFICERS.filter(o => !o.isPresident) };
+}
+
 function renderDashboard(page) {
   if (!pinUnlocked) {
     page.innerHTML = '';
